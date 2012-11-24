@@ -1,7 +1,7 @@
 <?php
 /**
  * Multi-image uploader action
- * 
+ *
  * @author Cash Costello
  * @license http://www.gnu.org/licenses/gpl-2.0.html GNU General Public License v2
  */
@@ -11,66 +11,180 @@ $img_river_view = elgg_get_plugin_setting('img_river_view', 'tidypics');
 
 $guid = (int) get_input('guid');
 $album = get_entity($guid);
-if (!$album) {
-	register_error(elgg_echo('tidypics:baduploadform'));
-	forward(REFERER);
-}
+$imgs =  get_input('img_guid');
 
-// post limit exceeded
-if (count($_FILES) == 0) {
-	trigger_error('Tidypics warning: user exceeded post limit on image upload', E_USER_WARNING);
-	register_error(elgg_echo('tidypics:exceedpostlimit'));
-	forward(REFERER);
-}
+if($imgs) {
 
-// test to make sure at least 1 image was selected by user
-$num_images = 0;
-foreach($_FILES['images']['name'] as $name) {
-	if (!empty($name)) {
-		$num_images++;
-	}
-}
-if ($num_images == 0) {
-	// have user try again
-	register_error(elgg_echo('tidypics:noimages'));
-	forward(REFERER);
-}
+	$uploaded_images = array();
+	$not_uploaded = array();
+	$error_msgs = array();
 
-// create the image object for each upload
-$uploaded_images = array();
-$not_uploaded = array();
-$error_msgs = array();
-foreach ($_FILES['images']['name'] as $index => $value) {
-	$data = array();
-	foreach ($_FILES['images'] as $key => $values) {
-		$data[$key] = $values[$index];
-	}
+	foreach ($imgs as $img) {
 
-	if (empty($data['name'])) {
-		continue;
-	}
+		$import = get_entity($img);
 
-	$mime = tp_upload_get_mimetype($data['name']);
+		$name = substr($import->getFilename(),5);
+		$mime = $import->getMimeType();
 
-	$image = new TidypicsImage();
-	$image->container_guid = $album->getGUID();
-	$image->setMimeType($mime);
-	$image->access_id = $album->access_id;
+		$image = new TidypicsImage();
+		$image->container_guid = $album->getGUID();
+		$image->setMimeType($mime);
+		$image->access_id = $album->access_id;
 
-	try {
-		$result = $image->save($data);
-	} catch (Exception $e) {
-		array_push($not_uploaded, $data['name']);
-		array_push($error_msgs, $e->getMessage());
+		$data = array(
+			'name' => $import->title,
+			'type' => $import->getMimeType(),
+			'tmp_name' => $import->getFilenameOnFilestore(),
+			'size' => $import->size(),
+			'error' => 0
+		);
+		//system_message($data);
+		try {
+			$result = $image->save($data);
+		} catch (Exception $e) {
+			array_push($not_uploaded, $data['name']);
+			array_push($error_msgs, $e->getMessage());
+		}
+
+		if ($result) {
+			array_push($uploaded_images, $image->getGUID());
+
+			if ($img_river_view == "all") {
+				add_to_river('river/object/image/create', 'create', $image->getOwnerGUID(), $image->getGUID());
+			}
+		}
+
 	}
 
-	if ($result) {
-		array_push($uploaded_images, $image->getGUID());
 
-		if ($img_river_view == "all") {
-			add_to_river('river/object/image/create', 'create', $image->getOwnerGUID(), $image->getGUID());
+} else {
+
+	if (!$album) {
+		register_error(elgg_echo('tidypics:baduploadform'));
+		forward(REFERER);
+	}
+
+	// post limit exceeded
+	if (count($_FILES) == 0) {
+		trigger_error('Tidypics warning: user exceeded post limit on image upload', E_USER_WARNING);
+		register_error(elgg_echo('tidypics:exceedpostlimit'));
+		forward(REFERER);
+	}
+
+	// test to make sure at least 1 image was selected by user
+	$num_images = 0;
+	foreach($_FILES['images']['name'] as $name) {
+		if (!empty($name)) {
+			$num_images++;
 		}
 	}
+	if ($num_images == 0) {
+		// have user try again
+		register_error(elgg_echo('tidypics:noimages'));
+		forward(REFERER);
+	}
+
+	// create the image object for each upload
+	$uploaded_images = array();
+	$not_uploaded = array();
+	$error_msgs = array();
+	foreach ($_FILES['images']['name'] as $index => $value) {
+		$data = array();
+		$text = "($index => $value) <br><br>";
+		foreach ($_FILES['images'] as $key => $values) {
+			$data[$key] = $values[$index];
+			//$text .= "$key => $values[$index] <br>";
+				
+		}
+//		system_message("$text ");
+		if (empty($data['name'])) {
+			continue;
+		}
+
+		$mime = tp_upload_get_mimetype($data['name']);
+
+		$image = new TidypicsImage();
+		$image->container_guid = $album->getGUID();
+		$image->setMimeType($mime);
+		$image->access_id = $album->access_id;
+
+		try {
+			$result = $image->save($data);
+		} catch (Exception $e) {
+			array_push($not_uploaded, $data['name']);
+			array_push($error_msgs, $e->getMessage());
+		}
+
+		if ($result) {
+			array_push($uploaded_images, $image->getGUID());
+
+			if ($img_river_view == "all") {
+				add_to_river('river/object/image/create', 'create', $image->getOwnerGUID(), $image->getGUID());
+			}
+		}
+
+		// importando para files
+		$file = new FilePluginFile();
+		$file->subtype = "file";
+		$prefix = "file/";
+		$name = $data['name'];
+		$mime = $data['type'];
+		$file->title = $name;
+		$file->access_id = $album->access_id;
+		$file->container_guid = elgg_get_logged_in_user_guid();
+
+		$filestorename = elgg_strtolower(time().$name);
+
+		$file->setFilename("file/".$filestorename);
+		$file->setMimeType($mime);
+		$file->originalfilename = $name;
+		$file->simpletype = get_general_file_type($mime);
+
+		$file->open("write");
+		$file->write(file_get_contents($data['tmp_name']));
+		$file->close();
+		$file->save();
+		
+		$filestorename = $file->getFilename();
+		$filestorename = elgg_substr($filestorename, elgg_strlen($prefix));
+
+		$file->icontime = time();
+		
+		$thumbnail = get_resized_image_from_existing_file($file->getFilenameOnFilestore(), 60, 60, true);
+		if ($thumbnail) {
+			$thumb = new ElggFile();
+			$thumb->setMimeType($mime);
+			$thumb->setFilename($prefix."thumb".$filestorename);
+			$thumb->open("write");
+			$thumb->write($thumbnail);
+			$thumb->close();
+
+			$file->thumbnail = $prefix."thumb".$filestorename;
+			unset($thumbnail);
+		}
+
+		$thumbsmall = get_resized_image_from_existing_file($file->getFilenameOnFilestore(), 153, 153, true);
+		if ($thumbsmall) {
+			$thumb->setFilename($prefix."smallthumb".$filestorename);
+			$thumb->open("write");
+			$thumb->write($thumbsmall);
+			$thumb->close();
+			$file->smallthumb = $prefix."smallthumb".$filestorename;
+			unset($thumbsmall);
+		}
+
+		$thumblarge = get_resized_image_from_existing_file($file->getFilenameOnFilestore(), 600, 600, false);
+		if ($thumblarge) {
+			$thumb->setFilename($prefix."largethumb".$filestorename);
+			$thumb->open("write");
+			$thumb->write($thumblarge);
+			$thumb->close();
+			$file->largethumb = $prefix."largethumb".$filestorename;
+			unset($thumblarge);
+		}
+		// fim - importando para files
+	}
+
 }
 
 if (count($uploaded_images)) {
@@ -96,7 +210,7 @@ if (count($uploaded_images)) {
 	if ($album->new_album) {
 		$album->new_album = false;
 		$album->first_upload = true;
-		
+
 		add_to_river('river/object/album/create', 'create', $album->getOwnerGUID(), $album->getGUID());
 
 		// "created album" notifications

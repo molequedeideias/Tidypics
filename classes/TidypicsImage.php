@@ -211,8 +211,10 @@ class TidypicsImage extends ElggFile {
 		// move the uploaded file into album directory
 		$this->setOriginalFilename($data['name']);
 		$filename = $this->getFilenameOnFilestore();
-		$result = move_uploaded_file($data['tmp_name'], $filename);
+		$result = copy($data['tmp_name'], $filename);
+		
 		if (!$result) {
+			system_message("saveImageFile: $result");
 			return false;
 		}
 

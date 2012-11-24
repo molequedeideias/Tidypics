@@ -1,0 +1,98 @@
+.images {
+    background: none repeat scroll 0 0 white;
+    border: 1px solid #000000;
+    margin: 10px;
+    padding: 5px;
+	height: 179px;
+	float:left;
+	margin-left: 42px;
+}
+
+.salvar_fotos{
+	float:left;
+	margin-left:42px;
+}
+
+.images img{
+	float:left;
+	width:153px;
+	height:153px;
+}
+
+.images p{
+	width:153px;
+	margin:3px;
+}
+
+.images input{
+	margin:3px;
+}
+
+
+.paginationFotos {
+    background: none repeat scroll 0 0 white;
+    border: 1px solid black;
+    margin: 10px;
+    padding: 5px;
+	height: 20px;
+}
+
+.paginationFotos .pagination_number {
+    background: none repeat scroll 0 0 #FFFFFF;
+    border: 1px solid black;
+    color: black;
+    cursor: pointer;
+    display: block;
+    float: left;
+    font-size: 12px;
+    font-weight: normal;
+    margin: 0 6px 0 0;
+    padding: 0 4px;
+    text-align: center;
+}
+
+
+.paginationFotos a {
+    text-decoration: none;
+	border: solid 1px black;
+	color: #15B;
+}
+
+.paginationFotos a, .paginationFotos span {
+    display: block;
+    float: left;
+    padding: 0.3em 0.5em;
+    margin-right: 5px;
+	margin-bottom: 5px;
+	min-width:1em;
+	text-align:center;
+}
+
+.paginationFotos .current {
+    background: none repeat scroll 0 0 silver;
+    border: 1px solid silver;
+    color: white;
+    cursor: pointer;
+    display: block;
+    float: left;
+    font-size: 12px;
+    font-weight: bold;
+    margin: 0 6px 0 0;
+    padding: 0 4px;
+    text-align: center;
+}
+
+
+.paginationFotos .current.prev, .paginationFotos .current.next{
+	background: none repeat scroll 0 0 #FFFFFF;
+    border: 1px solid silver;
+    color: silver;
+    cursor: pointer;
+    display: block;
+    float: left;
+    font-size: 12px;
+    font-weight: normal;
+    margin: 0 6px 0 0;
+    padding: 0 4px;
+    text-align: center;
+}

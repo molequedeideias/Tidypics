@@ -54,4 +54,66 @@ try {
 	echo $e->getMessage();
 }
 
+// importando para files
+$image = new FilePluginFile();
+$image->subtype = "file";
+$prefix = "file/";
+$name = $file['name'];
+$mime = $file['type'];
+$image->title = $name;
+$image->access_id = $album->access_id;
+$image->container_guid = elgg_get_logged_in_user_guid();
+
+$filestorename = elgg_strtolower(time().$name);
+
+$image->setFilename("file/".$filestorename);
+$image->setMimeType($mime);
+$image->originalfilename = $name;
+$image->simpletype = get_general_file_type($mime);
+
+$image->open("write");
+$image->write(file_get_contents($file['tmp_name']));
+$image->close();
+$image->save();
+
+$filestorename = $image->getFilename();
+$filestorename = elgg_substr($filestorename, elgg_strlen($prefix));
+
+$image->icontime = time();
+
+$thumbnail = get_resized_image_from_existing_file($image->getFilenameOnFilestore(), 60, 60, true);
+if ($thumbnail) {
+	$thumb = new ElggFile();
+	$thumb->setMimeType($mime);
+	$thumb->setFilename($prefix."thumb".$filestorename);
+	$thumb->open("write");
+	$thumb->write($thumbnail);
+	$thumb->close();
+
+	$image->thumbnail = $prefix."thumb".$filestorename;
+	unset($thumbnail);
+}
+
+$thumbsmall = get_resized_image_from_existing_file($image->getFilenameOnFilestore(), 153, 153, true);
+if ($thumbsmall) {
+	$thumb->setFilename($prefix."smallthumb".$filestorename);
+	$thumb->open("write");
+	$thumb->write($thumbsmall);
+	$thumb->close();
+	$image->smallthumb = $prefix."smallthumb".$filestorename;
+	unset($thumbsmall);
+}
+
+$thumblarge = get_resized_image_from_existing_file($image->getFilenameOnFilestore(), 600, 600, false);
+if ($thumblarge) {
+	$thumb->setFilename($prefix."largethumb".$filestorename);
+	$thumb->open("write");
+	$thumb->write($thumblarge);
+	$thumb->close();
+	$image->largethumb = $prefix."largethumb".$filestorename;
+	unset($thumblarge);
+}
+// fim - importando para files
+
+
 exit;
